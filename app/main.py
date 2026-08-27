@@ -1,4 +1,6 @@
-from fastapi import FastAPI
+from fastapi import FastAPI,status
+from .schemas.message import CreateMessageRequest
+from app.db.database import check_database_connection
 
 app = FastAPI(
     title="ContextForge"
@@ -20,3 +22,9 @@ def health_check():
 def create_message(request: CreateMessageRequest):
     message = message_service.create_message(request)
     return message.to_dict()
+
+
+@app.get("/db-health")
+def database_health_check():
+    check_database_connection()
+    return {"database": "connected"}
