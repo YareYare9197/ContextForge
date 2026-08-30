@@ -8,16 +8,28 @@ from sqlalchemy.orm import Session
 from app.repositories.document_repository import DocumentRepository
 from app.services.document_reader import DocumentReader
 from app.services.text_chunker import TextChunker
+from app.services.embedding_service import EmbeddingService
 
 
 UPLOAD_DIRECTORY = Path("storage/uploads")
 
 
 class DocumentService:
-    def __init__(self):
-        self.repository = DocumentRepository()
+    def __init__(self,
+        repository: DocumentRepository | None = None,
+        embedding_service: EmbeddingService | None = None):
+        self.repository = (
+            repository
+            if repository is not None
+            else DocumentRepository()
+        )
         self.reader = DocumentReader()
         self.chunker = TextChunker()
+        self.embedding_service = (
+            embedding_service
+            if embedding_service is not None
+            else EmbeddingService()
+        )
 
     def upload_document(
         self,
@@ -99,6 +111,7 @@ class DocumentService:
             )
 
             chunks = self.chunker.split(text)
+            embeddings = self.embedding_service.embed_many(chunks)
 
             saved_chunks = self.repository.save_chunks(
                 db,
@@ -126,3 +139,4 @@ class DocumentService:
                 "FAILED",
             )
             raise
+        
