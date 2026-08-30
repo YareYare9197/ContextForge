@@ -11,7 +11,13 @@ from app.services.user_service import UserService
 from app.schemas.conversation_member import AddConversationMemberRequest
 from app.services.conversation_member_service import ConversationMemberService
 from app.services.document_service import DocumentService
-
+from app.repositories.document_repository import DocumentRepository
+from app.schemas.search import SearchRequest
+from app.services.embedding_service import EmbeddingService
+from app.services.search_service import SearchService
+from app.services.answer_service import AnswerService
+from app.services.gemini_client import GeminiClient
+from app.services.prompt_builder import PromptBuilder
 
 app = FastAPI(
     title="ContextForge"
@@ -21,7 +27,23 @@ message_service = MessageService()
 conversation_service = ConversationService()
 user_service = UserService()
 conversation_member_service = ConversationMemberService()
-document_service = DocumentService()
+embedding_service = EmbeddingService()
+document_repository = DocumentRepository()
+
+document_service = DocumentService(
+    repository=document_repository,
+    embedding_service=embedding_service,
+)
+
+search_service = SearchService(
+    repository=document_repository,
+    embedding_service=embedding_service,
+)
+answer_service = AnswerService(
+    search_service=search_service,
+    prompt_builder=PromptBuilder(),
+    llm_client=GeminiClient(),
+)
 
 @app.get("/health")
 def health_check():
@@ -37,7 +59,16 @@ def database_health_check():
         "database": "connected"
     }
 
-
+@app.post("/answers")
+def answer_question(
+    request: SearchRequest,
+    db: Session = Depends(get_db),
+):
+    return answer_service.answer(
+        db,
+        request.query,
+        request.limit,
+    )
 @app.post(
     "/messages",
     status_code=status.HTTP_201_CREATED
@@ -138,6 +169,23 @@ def get_user(
     except LookupError as error:
         raise HTTPException(
             status_code=404,
+            detail=str(error),
+        )
+
+@app.post("/search")
+def search_documents(
+    request: SearchRequest,
+    db: Session = Depends(get_db),
+):
+    try:
+        return search_service.search(
+            db,
+            request.query,
+            request.limit,
+        )
+    except ValueError as error:
+        raise HTTPException(
+            status_code=400,
             detail=str(error),
         )
         

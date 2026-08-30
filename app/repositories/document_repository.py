@@ -1,7 +1,5 @@
-from uuid import uuid4
-
-from sqlalchemy import select
 from sqlalchemy.orm import Session
+from sqlalchemy import select
 
 from app.db.models import ChunkModel, DocumentModel, UserModel
 
@@ -37,22 +35,47 @@ class DocumentRepository:
         db.refresh(row)
 
         return row
+    
+    def search_similar(
+        self,
+        db: Session,
+        query_embedding: list[float],
+        limit: int = 5,
+    ) -> list[ChunkModel]:
+        distance = ChunkModel.embedding.cosine_distance(query_embedding)
+
+        statement = (
+            select(ChunkModel)
+            .where(ChunkModel.embedding.is_not(None))
+            .order_by(distance)
+            .limit(limit)
+        )
+
+        return list(db.scalars(statement).all())
+
+
 
     def save_chunks(
         self,
         db: Session,
         document_id: str,
         chunks: list[str],
+        embeddings: list[list[float]],
     ) -> list[ChunkModel]:
-        rows = [
-            ChunkModel(
-                id=str(uuid4()),
-                document_id=document_id,
-                chunk_index=index,
-                content=content,
+        if len(chunks) != len(embeddings):
+            raise ValueError("Each chunk must have one embedding")
+
+        rows = []
+
+        for index, chunk_text in enumerate(chunks):
+            rows.append(
+                ChunkModel(
+                    document_id=document_id,
+                    chunk_index=index,
+                    content=chunk_text,
+                    embedding=embeddings[index],
+                )
             )
-            for index, content in enumerate(chunks)
-        ]
 
         try:
             db.add_all(rows)

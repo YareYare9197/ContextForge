@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from pgvector.sqlalchemy import VECTOR
 
 from sqlalchemy import (
     DateTime,
@@ -170,16 +171,42 @@ class DocumentModel(Base):
 class ChunkModel(Base):
     __tablename__ = "chunks"
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    id: Mapped[str] = mapped_column(
+        String(36),
+        primary_key=True,
+        default=lambda: str(uuid4()),
+    )
+
     document_id: Mapped[str] = mapped_column(
         ForeignKey("documents.id"),
         index=True,
         nullable=False,
     )
-    chunk_index: Mapped[int] = mapped_column(Integer, nullable=False)
-    heading: Mapped[str | None] = mapped_column(String(255))
-    content: Mapped[str] = mapped_column(Text, nullable=False)
-    vector_id: Mapped[str | None] = mapped_column(String(100))
+
+    chunk_index: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+    )
+
+    heading: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+    )
+
+    content: Mapped[str] = mapped_column(
+        Text,
+        nullable=False,
+    )
+
+    vector_id: Mapped[str | None] = mapped_column(
+        String(100),
+        nullable=True,
+    )
+
+    embedding: Mapped[list[float] | None] = mapped_column(
+        VECTOR(384),
+        nullable=True,
+    )
 
     document = relationship(
         "DocumentModel",
