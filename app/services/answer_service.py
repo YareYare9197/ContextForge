@@ -38,17 +38,22 @@ class AnswerService:
             prompts["user"],
         )
 
+        grounded = bool(chunks)
+
         sources = [
             {
                 "chunk_id": chunk["chunk_id"],
                 "document_id": chunk["document_id"],
                 "chunk_index": chunk["chunk_index"],
                 "heading": chunk["heading"],
+                "distance": chunk["distance"],
             }
             for chunk in chunks
         ]
 
         return {
             "answer": answer,
+            "mode": "document" if grounded else "general",
+            "grounded": grounded,
             "sources": sources,
         }

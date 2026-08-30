@@ -9,6 +9,18 @@ class PromptBuilder:
         if not question:
             raise ValueError("Question cannot be empty")
 
+        if not chunks:
+            return {
+                "system": (
+                    "No relevant uploaded document was found. "
+                    "Answer the question using general knowledge. "
+                    "Clearly state that the answer is general and not "
+                    "based on an uploaded document. "
+                    "Do not invent sources."
+                ),
+                "user": question,
+            }
+
         context_parts = []
 
         for index, chunk in enumerate(chunks, start=1):
@@ -24,19 +36,14 @@ class PromptBuilder:
 
         context = "\n\n".join(context_parts)
 
-        system_prompt = (
-            "You answer questions using only the provided context. "
-            "If the context does not contain the answer, say that the "
-            "answer was not found in the uploaded documents. "
-            "Do not invent facts. Mention the source numbers you used."
-        )
-
-        user_prompt = (
-            f"Context:\n{context}\n\n"
-            f"Question:\n{question}"
-        )
-
         return {
-            "system": system_prompt,
-            "user": user_prompt,
+            "system": (
+                "Answer using only the provided document context. "
+                "Do not invent facts. "
+                "Mention the source numbers used."
+            ),
+            "user": (
+                f"Context:\n{context}\n\n"
+                f"Question:\n{question}"
+            ),
         }

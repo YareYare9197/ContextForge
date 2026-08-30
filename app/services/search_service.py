@@ -9,9 +9,11 @@ class SearchService:
         self,
         repository: DocumentRepository,
         embedding_service: EmbeddingService,
+        max_distance: float = 0.45,
     ):
         self.repository = repository
         self.embedding_service = embedding_service
+        self.max_distance = max_distance
 
     def search(
         self,
@@ -26,19 +28,27 @@ class SearchService:
 
         query_embedding = self.embedding_service.embed(query)
 
-        rows = self.repository.search_similar(
+        matches = self.repository.search_similar(
             db,
             query_embedding,
             limit,
         )
 
-        return [
-            {
-                "chunk_id": row.id,
-                "document_id": row.document_id,
-                "chunk_index": row.chunk_index,
-                "heading": row.heading,
-                "content": row.content,
-            }
-            for row in rows
-        ]
+        results = []
+
+        for row, distance in matches:
+            if distance > self.max_distance:
+                continue
+
+            results.append(
+                {
+                    "chunk_id": row.id,
+                    "document_id": row.document_id,
+                    "chunk_index": row.chunk_index,
+                    "heading": row.heading,
+                    "content": row.content,
+                    "distance": distance,
+                }
+            )
+
+        return results

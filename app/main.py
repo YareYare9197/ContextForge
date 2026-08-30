@@ -18,9 +18,21 @@ from app.services.search_service import SearchService
 from app.services.answer_service import AnswerService
 from app.services.gemini_client import GeminiClient
 from app.services.prompt_builder import PromptBuilder
+from app.schemas.answer import AnswerRequest
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(
     title="ContextForge"
+)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 message_service = MessageService()
@@ -235,3 +247,15 @@ def process_document(
             status_code=400,
             detail=str(error),
         )
+        
+        
+@app.post("/answers")
+def answer_question(
+    request: AnswerRequest,
+    db: Session = Depends(get_db),
+):
+    return answer_service.answer(
+        db=db,
+        question=request.query,
+        limit=request.limit,
+    )

@@ -41,18 +41,24 @@ class DocumentRepository:
         db: Session,
         query_embedding: list[float],
         limit: int = 5,
-    ) -> list[ChunkModel]:
-        distance = ChunkModel.embedding.cosine_distance(query_embedding)
+    ) -> list[tuple[ChunkModel, float]]:
+        distance = ChunkModel.embedding.cosine_distance(
+            query_embedding
+        ).label("distance")
 
         statement = (
-            select(ChunkModel)
+            select(ChunkModel, distance)
             .where(ChunkModel.embedding.is_not(None))
             .order_by(distance)
             .limit(limit)
         )
 
-        return list(db.scalars(statement).all())
+        rows = db.execute(statement).all()
 
+        return [
+            (chunk, float(distance_value))
+            for chunk, distance_value in rows
+        ]
 
 
     def save_chunks(
