@@ -27,14 +27,9 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-<<<<<<< HEAD
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-=======
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "https://context-forge-frontend.vercel.app",
->>>>>>> c9a2f7b (Allow deployed frontend origin)
     ],
     allow_credentials=True,
     allow_methods=["*"],
